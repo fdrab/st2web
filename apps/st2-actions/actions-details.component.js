@@ -79,6 +79,7 @@ export default class ActionsDetails extends React.Component {
   state = {
     runPreview: false,
     runValue: null,
+    displayValue: null,
     runTrace: null,
     executionsVisible: {},
     openModel: false,
@@ -266,7 +267,6 @@ export default class ActionsDetails extends React.Component {
     let { runPreview } = this.state;
 
     runPreview = !runPreview;
-
     this.setState({ runPreview });
   }
 
@@ -277,6 +277,16 @@ export default class ActionsDetails extends React.Component {
         [id]: !this.state.executionsVisible[id],
       },
     });
+  }
+
+  sanitizePreviewValues(values){
+    let previewValues = { ...values }
+    Object.keys(previewValues).map(key => {
+      if (this.props.action.parameters[key].secret){
+        previewValues[key] = "*".repeat(previewValues[key].length)
+      }
+    })
+    return previewValues
   }
 
   setWindowName(e) {
@@ -477,7 +487,7 @@ export default class ActionsDetails extends React.Component {
                 </Link>
               ) : null }
             </DetailsToolbar>
-            { this.state.runPreview && <Highlight key="preview" well data-test="action_code" code={this.state.runValue} /> }
+            { this.state.runPreview && <Highlight key="preview" well data-test="action_code" code={this.sanitizePreviewValues(this.state.runValue)} /> }
             <DetailsPanel key="panel" data-test="action_parameters">
               <DetailsPanelBody>
                 <form>

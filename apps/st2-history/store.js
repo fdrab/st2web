@@ -50,7 +50,12 @@ const historyReducer = (state = {}, input) => {
                 .replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.substr(1).toLowerCase())
               ,
               items: input.payload[key],
+              type: 'array',
             }))
+          // we manually push default additional filters not provided by the /executions/views response
+          filters.push({key: 'id', label: 'Execution Id', type: 'string'})
+          filters.push({key: 'timestamp_lt', label: 'End', type: 'datetime'})
+          filters.push({key: 'timestamp_gt', label: 'Start', type: 'datetime'})
           ;
           break;
         case 'error':
@@ -58,7 +63,6 @@ const historyReducer = (state = {}, input) => {
         default:
           break;
       }
-
       return {
         ...state,
         filters,

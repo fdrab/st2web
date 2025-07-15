@@ -30,7 +30,11 @@ import {
 import notification from '@stackstorm/module-notification';
 import setTitle from '@stackstorm/module-title';
 
-import Filter from '@stackstorm/module-filter';
+import {
+  ArrayFilter,
+  StringFilter,
+  DateTimeFilter,
+ } from '@stackstorm/module-filter';
 import FlexTable from '@stackstorm/module-flex-table';
 import Button from '@stackstorm/module-forms/button.component';
 import {
@@ -104,6 +108,7 @@ export default class HistoryPanel extends React.Component {
     maxPages: 0,
     displayUTC: false,
     advanced: false,
+    activeFilters: {},
   }
 
   componentDidMount() {
@@ -141,8 +146,9 @@ export default class HistoryPanel extends React.Component {
       this._source.addEventListener('st2.execution__update', this._executionUpdateListener);
       this._source.addEventListener('st2.execution__delete', this._executionDeleteListener);
     });
-
+    console.log(this.urlParams)
     const { page, activeFilters } = this.urlParams;
+    //const { activeFilters } = this.state.activeFilters; 
     this.fetchGroups({ page, activeFilters });
 
     store.dispatch({
@@ -159,7 +165,6 @@ export default class HistoryPanel extends React.Component {
     const { filter } = this.props;
     const { page, activeFilters } = parseSearch(get('location.search', this.props));
     const prev = parseSearch(get('location.search', prevProps));
-
     if (
       isEqual(page, prev.page) &&
       isEqual(activeFilters, prev.activeFilters) &&
@@ -206,6 +211,7 @@ export default class HistoryPanel extends React.Component {
             'id',
             'status',
             'start_timestamp',
+            'end_timestamp',
             'action.ref',
             'action.name',
             'action.runner_type',
@@ -224,7 +230,6 @@ export default class HistoryPanel extends React.Component {
           this.setState({
             maxPages: Math.ceil(total / limit),
           });
-
           return res.data;
         })
         .catch((err) => {
@@ -301,7 +306,6 @@ export default class HistoryPanel extends React.Component {
     if (location.pathname === pathname && location.search === search) {
       return;
     }
-
     router.push({ search, pathname });
   }
 
@@ -400,9 +404,25 @@ export default class HistoryPanel extends React.Component {
     });
   }
 
+  handleFilterUpdate(key, value) {
+    //const { activeFilters } = this.state.activeFilters
+    //console.log(value)
+    this.setState({ activeFilters: { ...this.state.activeFilters, [key]: value } });
+    //console.log(this.state.activeFilters)
+  }
+
+  handleFilterChange() {
+    const { activeFilters } = this.state.activeFilters;
+    this.navigate({
+      page: 1,
+      activeFilters: {
+        ...activeFilters,
+      },
+    });
+  }
+/*
   handleFilterChange(key, value) {
     const { activeFilters } = this.urlParams;
-
     this.navigate({
       page: 1,
       activeFilters: {
@@ -411,7 +431,7 @@ export default class HistoryPanel extends React.Component {
       },
     });
   }
-
+*/
   handleFilterStringChange(value) {
     return store.dispatch({
       type: 'UPDATE_FILTER',
@@ -421,8 +441,9 @@ export default class HistoryPanel extends React.Component {
 
   render() {
     const { filter, filters, childExecutions, groups, collapsed } = this.props;
-    const { id, section, page, activeFilters } = this.urlParams;
-
+    const { id, section, page, activeFilters} = this.urlParams;
+    //const { activeFilters} = this.state.activeFilters || {};
+    //console.log(this.urlParams)
     const view = this._view ? this._view.value : {};
     const maxPages = this.state.maxPages;
 
@@ -430,6 +451,44 @@ export default class HistoryPanel extends React.Component {
 
     const { advanced } = this.state;
 
+    let filterComponents = [];
+    if (filters) {
+      filters.map(( filter ) => {
+      let filterComponent;
+      switch(filter.type) {
+        case 'string':
+          filterComponent = <StringFilter
+            key={filter.key}
+            keyname={filter.key}
+            label={filter.label}
+            value={activeFilters[filter.key]}
+            onChange={(value) => this.handleFilterUpdate(filter.key, value)}
+          />;
+          break;
+        case 'datetime':
+          filterComponent = <DateTimeFilter
+            key={filter.key}
+            label={filter.label}
+            value={activeFilters[filter.key]}
+            onChange={(value) => this.handleFilterUpdate(filter.key, value)}
+          />;
+          break;
+        case 'array':
+          filterComponent = <ArrayFilter
+              key={filter.key}
+              label={filter.label}
+              items={filter.items}
+              activeItems={activeFilters[filter.key] || []}
+              onChange={(value) => this.handleFilterUpdate(filter.key, value)}
+            />;
+          break;
+        default:
+          filterComponent = null;
+          break;
+      }
+      filterComponents.push(filterComponent);
+    });
+  }
     return (
       <Panel data-test="history_panel">
         <PanelView className="st2-history">
@@ -445,15 +504,15 @@ export default class HistoryPanel extends React.Component {
               <ToolbarFilters
                 hidden={advanced}
               >
-                { filters.map(({ key, label, items }) => (
-                  <Filter
-                    key={key}
-                    label={label}
-                    items={items}
-                    activeItems={activeFilters[key] || []}
-                    onChange={(value) => this.handleFilterChange(key, value)}
-                  />
-                )) }
+                { filterComponents }
+                <Button
+                  className={cx({
+                    'st2-forms__button': true,
+                    'st2-forms__button--active': advanced,
+                  })}
+                  value="Filter"
+                  onClick={() => this.handleFilterChange()}
+                />
               </ToolbarFilters>
             ) : null }
             <ToolbarView>
