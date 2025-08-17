@@ -420,18 +420,7 @@ export default class HistoryPanel extends React.Component {
       },
     });
   }
-/*
-  handleFilterChange(key, value) {
-    const { activeFilters } = this.urlParams;
-    this.navigate({
-      page: 1,
-      activeFilters: {
-        ...activeFilters,
-        [key]: value,
-      },
-    });
-  }
-*/
+
   handleFilterStringChange(value) {
     return store.dispatch({
       type: 'UPDATE_FILTER',
@@ -442,8 +431,6 @@ export default class HistoryPanel extends React.Component {
   render() {
     const { filter, filters, childExecutions, groups, collapsed } = this.props;
     const { id, section, page, activeFilters} = this.urlParams;
-    //const { activeFilters} = this.state.activeFilters || {};
-    //console.log(this.urlParams)
     const view = this._view ? this._view.value : {};
     const maxPages = this.state.maxPages;
 
