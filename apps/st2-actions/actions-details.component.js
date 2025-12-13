@@ -402,6 +402,41 @@ export default class ActionsDetails extends React.Component {
       this.setState({isRemoveFiles:false});
     }
   }
+
+  obfuscateSecretFields(data, parameters) {
+    if (!data || !parameters) {
+      return data;
+    }
+
+    const obfuscated = { ...data };
+
+    Object.keys(obfuscated).forEach(key => {
+      const param = parameters[key];
+      if (param && param.secret) {
+        const value = obfuscated[key];
+        
+        if (value === null || value === undefined || value === '') {
+          // Keep empty values as is
+          return;
+        }
+
+        // Check the type of the value
+        if (Array.isArray(value)) {
+          const stringValue = JSON.stringify(value);
+          obfuscated[key] = '[' + '*'.repeat(stringValue.length) + ']';
+        } else if (typeof value === 'object') {
+          const stringValue = JSON.stringify(value);
+          obfuscated[key] = '{' + '*'.repeat(stringValue.length) + '}';
+        } else {
+          // For strings, numbers, and other primitives
+          const stringValue = String(value);
+          obfuscated[key] = '*'.repeat(stringValue.length);
+        }
+      }
+    });
+
+    return obfuscated;
+  }
  
   openDeleteModel (e) {
     this.setState({isRemoveFiles: false});
@@ -477,7 +512,7 @@ export default class ActionsDetails extends React.Component {
                 </Link>
               ) : null }
             </DetailsToolbar>
-            { this.state.runPreview && <Highlight key="preview" well data-test="action_code" code={this.state.runValue} /> }
+            { this.state.runPreview && <Highlight key="preview" well data-test="action_code" code={this.obfuscateSecretFields(this.state.runValue, action.parameters)} /> }
             <DetailsPanel key="panel" data-test="action_parameters">
               <DetailsPanelBody>
                 <form>
